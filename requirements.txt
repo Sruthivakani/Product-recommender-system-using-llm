@@ -1,0 +1,9 @@
+flask
+numpy
+pandas
+torch
+faiss-cpu
+transformers
+fuzzywuzzy
+scikit-learn
+gunicorn
