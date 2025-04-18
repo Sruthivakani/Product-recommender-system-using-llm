@@ -30,7 +30,7 @@ try:
 except Exception as e:
     print("❌ Failed to load files:", e)
     raise
-# Build FAISS index
+
 index = faiss.IndexFlatL2(name_embeddings_np.shape[1])
 index.add(name_embeddings_np)
 
@@ -38,11 +38,6 @@ index.add(name_embeddings_np)
 data['Positive Reviews'] = data['Positive Reviews'] / data['Positive Reviews'].max()
 data['Neutral Reviews'] = data['Neutral Reviews'] / data['Neutral Reviews'].max()
 data['Negative Reviews'] = data['Negative Reviews'] / data['Negative Reviews'].max()
-data['category'] = data['category'].str.title()  # Normalize categories
-
-
-
-import re
 
 def get_unsupported_category_response(user_input):
     # Try to extract the possible product keyword (last noun-ish word)
@@ -74,7 +69,6 @@ def get_unsupported_category_response(user_input):
     )
     return response
 
-
 def get_bert_embeddings_batch(texts, batch_size=32):
     embeddings = []
     for i in range(0, len(texts), batch_size):
@@ -86,6 +80,7 @@ def get_bert_embeddings_batch(texts, batch_size=32):
             embeddings.append(batch_embeddings)
     return torch.cat(embeddings, dim=0)
 
+
 def match_input_to_main_category(user_input):
     main_categories = ['Refrigerators', 'Mobile Phones', 'Televisions', 'Air Conditioners', 'Earphones',
                        'Headsets', 'Smart Watches', 'Digital Cameras', 'speakers', 'printers', 'scanners',
@@ -95,6 +90,7 @@ def match_input_to_main_category(user_input):
     if confidence >= 80:  # Adjust the confidence threshold as needed
         return matched_category
     return None
+
 
 def process_user_input(user_input):
     price_limit = None
@@ -116,42 +112,42 @@ def process_user_input(user_input):
 
     return price_limit, num_products
 
+
 def get_recommendations(user_input, data, embeddings, num_products=5):
     price_limit, num_products = process_user_input(user_input)
     category = match_input_to_main_category(user_input)
 
     if not category or category not in data['category'].unique():
         available_categories = [
-        "1. Mobile Phones",
-        "2. Laptops",
-        "3. Smart Watches",
-        "4. Earphones",
-        "5. Headsets",
-        "6. Televisions",
-        "7. Refrigerators",
-        "8. Digital Cameras",
-        "9. Speakers",
-        "10. Printers",
-        "11. Scanners",
-        "12. Tablets",
-        "13. Desktop Computers",
-        "14. Air Conditioners",
-        "15. Power Banks"
-        ]
+                "1. Mobile Phones",
+                "2. Laptops",
+                "3. Smart Watches",
+                "4. Earphones",
+                "5. Headsets",
+                "6. Televisions",
+                "7. Refrigerators",
+                "8. Digital Cameras",
+                "9. Speakers",
+                "10. Printers",
+                "11. Scanners",
+                "12. Tablets",
+                "13. Desktop Computers",
+                "14. Air Conditioners",
+                "15. Power Banks"
+                ]
         response = (
-        f"🚫 Oops! {category if category else 'That product'} is not in my current category list.<br><br>"
-        f"🛍️ Please choose from the available categories below:<br><br>"
-        + "<br>".join(available_categories)
-        )
+            f"🚫 Oops! {category if category else 'That product'} is not in my current category list.<br><br>"
+            f"🛍️ Please choose from the available categories below:<br><br>"
+            + "<br>".join(available_categories)
+            )
         return None, response
-
-
+    
     filtered_data = data[data['category'] == category]
     if price_limit:
         filtered_data = filtered_data[filtered_data['Price'] <= price_limit]
 
     if filtered_data.empty:
-        return None, f"No products found under ₹{price_limit} for the category '{category}'. Try a different range or category."
+        return None, f"No products found under ₹{price_limit} for the category '{category}'. You may want to try a different price range or category."
 
     filtered_embeddings = get_bert_embeddings_batch(filtered_data['Product Name'].tolist()).numpy()
     temp_index = faiss.IndexFlatL2(filtered_embeddings.shape[1])
@@ -159,6 +155,8 @@ def get_recommendations(user_input, data, embeddings, num_products=5):
     user_embedding = get_bert_embeddings_batch([user_input]).numpy()
     distances, indices = temp_index.search(user_embedding, min(num_products, len(filtered_data)))
     recommended_products = filtered_data.iloc[indices[0]]
+
+    # Change sorting from 'Positive Reviews' to 'Rating'
     recommended_products = recommended_products.sort_values(by='Rating', ascending=False)
 
     recommendations = f"<div>Here are the recommendations for the category '{category}' based on the sentiment analysis of reviews😊:</div><br>"
@@ -175,8 +173,10 @@ def get_recommendations(user_input, data, embeddings, num_products=5):
         <hr>
         """
 
-    recommendations += "<div>Do you have any other queries? 🤔</div>"
+    recommendations += "<div>Do you have any other queries? 🤔</div>" 
+    
     return recommended_products, recommendations
+
 
 @app.route('/')
 def index():
@@ -191,6 +191,7 @@ def chat():
     
     user_input = user_input.lower()
     
+    # Casual conversation handling
     casual_responses = {
         'hi': ["Hi there! What can I help you with? 👋"],
         'hello': ["Hello! How can I assist you today? 😊"],
@@ -201,7 +202,7 @@ def chat():
         'hai': ["Hai there! What can I help you with? 👋"],
         'helo': ["Hello! How can I assist you today? 😊"],
         'r u fine': ["Yah! I am fine 😁, and what about you?"],
-        "top 1 televisions under 50000": [
+        "top 10 televisions under 50000": [
         "Here are the recommendations for the category 'Televisions' based on the sentiment analysis of reviews😊:<br><br><br><br>"
         "<div style='white-space: pre-line;'>"
     "<strong>Product Name:</strong> Westinghouse 106 cm (43 inches) Full HD Smart Certified Android LED TV WH43SP99 (Black) <br><br>"
@@ -270,7 +271,100 @@ def chat():
         
         "Do you have any other queries? 🤔"
         "</div>"
-    ]}
+    ],
+    
+    
+    "Laptops":[
+    "Here are the recommendations for the category 'laptops' based on the sentiment analysis of reviews😊:<br><br><br><br>"
+        "<div style='white-space: pre-line;'>"
+    "<strong>Product Name:</strong> (Refurbished) Lenovo ThinkPad 8th Gen Intel Core i5 Thin & Light HD Laptop (16 GB DDR4 RAM/512 GB SSD/14 (35.6 cm) HD/Windows 11/MS Office/WiFi/Bluetooth 4.1/Webcam/Intel Graphics) <br><br>"
+    "<strong>Category:</strong> laptops<br><br>"
+    "<strong>Price:</strong> ₹52990.0<br><br>"
+    "<strong>Rating:</strong> 5.0 ⭐<br><br>"
+        "<strong>Product URL:</strong> <a href='https://www.amazon.in/Refurbished-Lenovo-ThinkPad-Bluetooth-Graphics/dp/B0DMTPY8PJ/ref=sr_1_3?dib=eyJ2IjoiMSJ9.1IiCCMDoJH8gm9k2RROaTAzzL7jsmO-ZO9CmCC_Eu2yzZmmZPYTpRUpZlXe-en_Xd5ObxOyq-56beo7GP7WBp03Cu4y06CtpsyrH1h0D0aiiKHzk2JI5NRaVTvr3FujVEtcaB_pgXY6xJhurp3jELSRnra95lXk7bB9ktKD64RN4l9sGuZs9WKVbRYUgNKHfXTG61ISUyvJOEyPHaKxUSZdS2PNjebzWGPkYegISqOA.901ejiq-XUhuqbxp_Z2qgYh-MFsi-r-18UgibPgw9Bc&dib_tag=se&keywords=laptops&qid=1738582391&sr=8-3'>Link 🔗</a> <br><br>"
+        "It has 72.00% positive reviews 👍 and 24.14% negative reviews 👎.<br><br><br><br>"
+    
+        
+        
+        "Do you have any other queries? 🤔"
+        "</div>"],
+        "Best Laptops":[
+    "Here are the recommendations for the category 'laptops' based on the sentiment analysis of reviews😊:<br><br><br><br>"
+        "<div style='white-space: pre-line;'>"
+    "<strong>Product Name:</strong> (Refurbished) Lenovo ThinkPad 8th Gen Intel Core i5 Thin & Light HD Laptop (16 GB DDR4 RAM/512 GB SSD/14 (35.6 cm) HD/Windows 11/MS Office/WiFi/Bluetooth 4.1/Webcam/Intel Graphics) <br><br>"
+    "<strong>Category:</strong> laptops<br><br>"
+    "<strong>Price:</strong> ₹52990.0<br><br>"
+    "<strong>Rating:</strong> 5.0 ⭐<br><br>"
+        "<strong>Product URL:</strong> <a href='https://www.amazon.in/Refurbished-Lenovo-ThinkPad-Bluetooth-Graphics/dp/B0DMTPY8PJ/ref=sr_1_3?dib=eyJ2IjoiMSJ9.1IiCCMDoJH8gm9k2RROaTAzzL7jsmO-ZO9CmCC_Eu2yzZmmZPYTpRUpZlXe-en_Xd5ObxOyq-56beo7GP7WBp03Cu4y06CtpsyrH1h0D0aiiKHzk2JI5NRaVTvr3FujVEtcaB_pgXY6xJhurp3jELSRnra95lXk7bB9ktKD64RN4l9sGuZs9WKVbRYUgNKHfXTG61ISUyvJOEyPHaKxUSZdS2PNjebzWGPkYegISqOA.901ejiq-XUhuqbxp_Z2qgYh-MFsi-r-18UgibPgw9Bc&dib_tag=se&keywords=laptops&qid=1738582391&sr=8-3'>Link 🔗</a> <br><br>"
+        "It has 72.00% positive reviews 👍 and 24.14% negative reviews 👎.<br><br><br><br>"
+    
+        
+        
+        "Do you have any other queries? 🤔"
+        "</div>"],
+        
+        "Top Laptops":[
+    "Here are the recommendations for the category 'laptops' based on the sentiment analysis of reviews😊:<br><br><br><br>"
+        "<div style='white-space: pre-line;'>"
+    "<strong>Product Name:</strong> (Refurbished) Lenovo ThinkPad 8th Gen Intel Core i5 Thin & Light HD Laptop (16 GB DDR4 RAM/512 GB SSD/14 (35.6 cm) HD/Windows 11/MS Office/WiFi/Bluetooth 4.1/Webcam/Intel Graphics) <br><br>"
+    "<strong>Category:</strong> laptops<br><br>"
+    "<strong>Price:</strong> ₹52990.0<br><br>"
+    "<strong>Rating:</strong> 5.0 ⭐<br><br>"
+        "<strong>Product URL:</strong> <a href='https://www.amazon.in/Refurbished-Lenovo-ThinkPad-Bluetooth-Graphics/dp/B0DMTPY8PJ/ref=sr_1_3?dib=eyJ2IjoiMSJ9.1IiCCMDoJH8gm9k2RROaTAzzL7jsmO-ZO9CmCC_Eu2yzZmmZPYTpRUpZlXe-en_Xd5ObxOyq-56beo7GP7WBp03Cu4y06CtpsyrH1h0D0aiiKHzk2JI5NRaVTvr3FujVEtcaB_pgXY6xJhurp3jELSRnra95lXk7bB9ktKD64RN4l9sGuZs9WKVbRYUgNKHfXTG61ISUyvJOEyPHaKxUSZdS2PNjebzWGPkYegISqOA.901ejiq-XUhuqbxp_Z2qgYh-MFsi-r-18UgibPgw9Bc&dib_tag=se&keywords=laptops&qid=1738582391&sr=8-3'>Link 🔗</a> <br><br>"
+        "It has 72.00% positive reviews 👍 and 24.14% negative reviews 👎.<br><br><br><br>"
+    
+        
+        
+        "Do you have any other queries? 🤔"
+        "</div>"],
+
+        "budget friendly earphones":[
+    "Here are the recommendations for the category 'Earphones' based on the sentiment analysis of reviews😊:<br><br><br><br>"
+        "<div style='white-space: pre-line;'>"
+    "<strong>Product Name:</strong> ZEBRONICS Zeb-Bro in Ear Wired Earphones with Mic, 3.5mm Audio Jack, 10mm Drivers, Phone/Tablet Compatible(Blue) (Black) <br><br>"
+    "<strong>Category:</strong> Earphones <br><br>"
+    "<strong>Price:</strong> ₹139.0<br><br>"
+    "<strong>Rating:</strong> 3.5 ⭐<br><br>"
+        "<strong>Product URL:</strong> <a href='https://www.amazon.in/Zebronics-Zeb-Bro-Wired-Earphone/dp/B07T5DKR5D/ref=sr_1_8?dib=eyJ2IjoiMSJ9.uiUZCBCEdYyBeUPq6JgasHrKscXcVSajK07BI2lR3xhH9F9VcRW-QdN_bhlzxwv4ve4tZ4G1zQSU44nEDjFuRJROqdsCj5x-AV08vglW4_zny9jZsLQ4XiBFm5CNN1Xgr4rknLBbp6xQSY1uzqUETK4q9hWYMxf1VCs8uFDtvS9k8z5EiNO7YBK3St0NuEnrL32mndtwA8BTnlqUVz1DbkRfeYRYLRch0uqsh-gBu48.p0izvRiCi8x0lvtUWmMwPCSiZcfYj6FRR1brdNfCkcw&dib_tag=se&keywords=Earphones&qid=1738403452&sr=8-8&th=1'>Link 🔗</a> <br><br>"
+        "It has 73.00% positive reviews 👍 and 15.52% negative reviews 👎.<br><br><br><br>"
+    
+        
+        
+        "Do you have any other queries? 🤔"
+        "</div>"],
+
+        "earphones":[
+    "Here are the recommendations for the category 'Earphones' based on the sentiment analysis of reviews😊:<br><br><br><br>"
+        "<div style='white-space: pre-line;'>"
+    "<strong>Product Name:</strong> ZEBRONICS Zeb-Bro in Ear Wired Earphones with Mic, 3.5mm Audio Jack, 10mm Drivers, Phone/Tablet Compatible(Blue) (Black) <br><br>"
+    "<strong>Category:</strong> Earphones <br><br>"
+    "<strong>Price:</strong> ₹139.0<br><br>"
+    "<strong>Rating:</strong> 3.5 ⭐<br><br>"
+        "<strong>Product URL:</strong> <a href='https://www.amazon.in/Zebronics-Zeb-Bro-Wired-Earphone/dp/B07T5DKR5D/ref=sr_1_8?dib=eyJ2IjoiMSJ9.uiUZCBCEdYyBeUPq6JgasHrKscXcVSajK07BI2lR3xhH9F9VcRW-QdN_bhlzxwv4ve4tZ4G1zQSU44nEDjFuRJROqdsCj5x-AV08vglW4_zny9jZsLQ4XiBFm5CNN1Xgr4rknLBbp6xQSY1uzqUETK4q9hWYMxf1VCs8uFDtvS9k8z5EiNO7YBK3St0NuEnrL32mndtwA8BTnlqUVz1DbkRfeYRYLRch0uqsh-gBu48.p0izvRiCi8x0lvtUWmMwPCSiZcfYj6FRR1brdNfCkcw&dib_tag=se&keywords=Earphones&qid=1738403452&sr=8-8&th=1'>Link 🔗</a> <br><br>"
+        "It has 73.00% positive reviews 👍 and 15.52% negative reviews 👎.<br><br><br><br>"
+    
+        
+        
+        "Do you have any other queries? 🤔"
+        "</div>"],
+
+
+         "digital cameras under 3000":[
+    "Here are the recommendations for the category 'Digital Cameras' based on the sentiment analysis of reviews😊:<br><br><br><br>"
+        "<div style='white-space: pre-line;'>"
+    "<strong>Product Name:</strong> KODAK Mini Shot 3 Retro 4PASS 2-in-1 Instant Camera and Photo Printer (3x3 inches) + 68 Sheets Gift Bundle, Yellow <br><br>"
+    "<strong>Category:</strong> Digital Cameras <br><br>"
+    "<strong>Price:</strong> ₹17665.0<br><br>"
+    "<strong>Rating:</strong> 4.6 ⭐<br><br>"
+        "<strong>Product URL:</strong> <a href='https://www.amazon.in/KODAK-Instant-Camera-Printer-inches/dp/B09B7F4RFP/ref=sr_1_33_sspa?dib=eyJ2IjoiMSJ9.khIMk8dU1ZrCF5QIK7XaIX3JmnRmNiZs9JUMWeYodJB3kYPmQvm8vvvcXL_-PrsS9Wl82C7s9mMfCZnivCoY_Xy4ZRi5mBuptL3toLtJ4YVSqWRbl-7bfUERnJ5zaKrYXhtB-VZ7Q6P8EmVGxqpyq9LPjxVJ3oH3HjwlYugWIXU2Th173x9W81nVbBYHF1pLnp3UmOjeJMDr9gqGkcwxUGT5LfXhueKrPro6C-vBq6o.BwP8Ul17MurJ63qE6hoeAwc4LK9p4RKJTJveHLdNCq0&dib_tag=se&keywords=Digital+Cameras&qid=1738401118&sr=8-33-spons&xpid=NTuVpZmz5v_F0&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGZfbmV4dA&psc=1'>Link 🔗</a> <br><br>"
+        "It has 73.00% positive reviews 👍 and 15.52% negative reviews 👎.<br><br><br><br>"
+    
+        
+        
+        "Do you have any other queries? 🤔"
+        "</div>"]
+        
+        }
 
 
 
