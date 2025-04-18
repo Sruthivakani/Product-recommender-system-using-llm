@@ -20,9 +20,10 @@ app = Flask(__name__)
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 model = BertModel.from_pretrained('bert-base-uncased')
 
-# Load precomputed embeddings and product metadata
-name_embeddings_np = np.load("/Users/karthikvakani/Desktop/Projects/major project/product_name_embeddings.npy")
-data = pd.read_csv("/Users/karthikvakani/Desktop/Projects/major project/product_metadata.csv")
+# Use relative paths
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+name_embeddings_np = np.load(os.path.join(BASE_DIR, "product_name_embeddings.npy"))
+data = pd.read_csv(os.path.join(BASE_DIR, "product_metadata.csv"))
 
 # Build FAISS index
 index = faiss.IndexFlatL2(name_embeddings_np.shape[1])
