@@ -22,9 +22,13 @@ model = BertModel.from_pretrained('bert-base-uncased')
 
 # Use relative paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-name_embeddings_np = np.load(os.path.join(BASE_DIR, "product_name_embeddings.npy"))
-data = pd.read_csv(os.path.join(BASE_DIR, "product_metadata.csv"))
-
+try:
+    name_embeddings_np = np.load(os.path.join(BASE_DIR, "product_name_embeddings.npy"))
+    data = pd.read_csv(os.path.join(BASE_DIR, "product_metadata.csv"))
+    print("✅ Files loaded successfully.")
+except Exception as e:
+    print("❌ Failed to load files:", e)
+    raise
 # Build FAISS index
 index = faiss.IndexFlatL2(name_embeddings_np.shape[1])
 index.add(name_embeddings_np)
