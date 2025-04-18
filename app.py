@@ -11,9 +11,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from fuzzywuzzy import process
 
 # For singular/plural normalization
-import nltk
-from nltk.stem import WordNetLemmatizer
-nltk.download('wordnet')
+
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -36,7 +34,6 @@ data['Neutral Reviews'] = data['Neutral Reviews'] / data['Neutral Reviews'].max(
 data['Negative Reviews'] = data['Negative Reviews'] / data['Negative Reviews'].max()
 data['category'] = data['category'].str.title()  # Normalize categories
 
-lemmatizer = WordNetLemmatizer()
 
 
 import re
@@ -85,18 +82,12 @@ def get_bert_embeddings_batch(texts, batch_size=32):
 
 def match_input_to_main_category(user_input):
     main_categories = ['Refrigerators', 'Mobile Phones', 'Televisions', 'Air Conditioners', 'Earphones',
-                       'Headsets', 'Smart Watches', 'Digital Cameras', 'Speakers', 'Printers', 'Scanners',
-                       'Tablets', 'Laptops', 'Desktop Computers', 'Power Banks']
+                       'Headsets', 'Smart Watches', 'Digital Cameras', 'speakers', 'printers', 'scanners',
+                       'tablets', 'laptops', 'desktop computers', 'power banks']
     
-    words = re.findall(r'\w+', user_input.lower())
-    lemmatized_input = ' '.join([lemmatizer.lemmatize(word) for word in words])
-
-    normalized_categories = [cat.lower() for cat in main_categories]
-    matched_category, confidence = process.extractOne(lemmatized_input, normalized_categories)
-
-    if confidence >= 70:  # Lower threshold to be more tolerant
-        original_index = normalized_categories.index(matched_category)
-        return main_categories[original_index]
+    matched_category, confidence = process.extractOne(user_input, main_categories)
+    if confidence >= 80:  # Adjust the confidence threshold as needed
+        return matched_category
     return None
 
 def process_user_input(user_input):
